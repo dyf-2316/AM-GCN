@@ -7,6 +7,9 @@ from torch.nn.modules.module import Module
 
 
 class GraphConvolution(Module):
+    """
+    简单图卷积层，参考自 "https://github.com/tkipf/pygcn"
+    """
 
     def __init__(self, in_features, out_features, bias=True):
         super().__init__()
@@ -29,6 +32,9 @@ class GraphConvolution(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj):
+        """
+        :param adj: 归一化后的邻接矩阵
+        """
         # torch.mm表示矩阵乘法
         support = torch.mm(input, self.weight)
         # 由于邻接矩阵的存储时用的是稀疏矩阵，torch.spmm表示sparse_tensor与dense_tensor相乘

@@ -1,7 +1,19 @@
+import time
+import argparse
+import numpy as np
+
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+
+from utils import load_data, accuracy
 from models import AM_GCN
 
 # 设置训练参数
 parser = argparse.ArgumentParser()
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='Disables CUDA training.')
+parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=200,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.0005,

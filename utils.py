@@ -5,7 +5,7 @@ import scipy.sparse as sp
 import torch
 
 
-def load_data(path='../data/cora', dataset='cora'):
+def load_data(k=7, path='../data/cora', dataset='cora'):
     """导入数据集"""
     print('Loading {} dataset...'.format(dataset))
     # 导入节点、特征、标签

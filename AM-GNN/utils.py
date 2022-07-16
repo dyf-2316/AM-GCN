@@ -12,14 +12,13 @@ def load_data(arg):
     """导入数据集"""
     print('Loading {} dataset...'.format(arg.dataset))
 
-    path = "/Users/dyf/PycharmProjects/AM-GNN/data/preprocess/{}".format(arg.dataset)
+    path = "/Users/dyf/PycharmProjects/AM-GNN/data/{}".format(arg.dataset)
     # 用行压缩矩阵csr_matrix来存储节点特征
     features = np.loadtxt("{}/{}.feature".format(path, arg.dataset), dtype=float)
     features = sp.csr_matrix(features, dtype=np.float32)
     features = torch.FloatTensor(np.array(features.todense()))
 
     labels = np.loadtxt("{}/{}.label".format(path, arg.dataset), dtype=int)
-    labels = torch.LongTensor(np.array(labels))
 
     # 统计不同class的节点
     class_nodes_list = {}
@@ -27,6 +26,8 @@ def load_data(arg):
         if label not in class_nodes_list:
             class_nodes_list[label] = []
         class_nodes_list[label].append(idx)
+
+    labels = torch.LongTensor(np.array(labels))
 
     # 导入边关系
     edges_unordered = np.genfromtxt("{}/{}.edge".format(path, arg.dataset), dtype=float)

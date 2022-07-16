@@ -11,7 +11,7 @@ import torch.optim as optim
 
 # from pygcn.utils import load_data, accuracy
 # from pygcn.models import GCN
-from utils import load_data, accuracy
+from utils import load_data, metrics
 from models import GCN
 
 # Training settings
@@ -21,18 +21,18 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=50,
                     help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=0.01,
+parser.add_argument('--lr', type=float, default=0.001,
                     help='Initial learning rate.')
-parser.add_argument('--weight_decay', type=float, default=5e-4,
+parser.add_argument('--weight_decay', type=float, default=3e-4,
                     help='Weight decay (L2 loss on parameters).')
-parser.add_argument('--hidden', type=int, default=512,
+parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--k', type=float, default=7,
                     help='k nearest neighbors.')
-parser.add_argument("-d", "--dataset", help="dataset", type=str, default='citeseer')
-parser.add_argument("-l", "--label_per_class", help="labeled data for train per class", type=int, default=60)
+parser.add_argument("-d", "--dataset", help="dataset", type=str, default='acm')
+parser.add_argument("-l", "--label_per_class", help="labeled data for train per class", type=int, default=20)
 
 
 args = parser.parse_args()
@@ -76,14 +76,14 @@ for epoch in range(args.epochs):
     optimizer.zero_grad()
     output = model(features, adj_topo)
     loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-    acc_train = accuracy(output[idx_train], labels[idx_train])
+    acc_train, f1_train = metrics(output[idx_train], labels[idx_train], labels.max().item() + 1)
     loss_train.backward()
     optimizer.step()
 
     model.eval()
     output = model(features, adj_topo)
 
-    acc_val = accuracy(output[idx_test], labels[idx_test])
+    acc_val, f1_val = metrics(output[idx_test], labels[idx_test], labels.max().item() + 1)
     if max_accuracy < acc_val:
         torch.save(model, "./best.plk")
         max_accuracy = acc_val
@@ -91,7 +91,9 @@ for epoch in range(args.epochs):
     print('Epoch: {:04d}'.format(epoch + 1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
+          "f1_train: {:.4f}".format(f1_train.item()),
           'acc_val: {:.4f}'.format(acc_val.item()),
+          "f1_val: {:.4f}".format(f1_val.item()),
           'time: {:.4f}s'.format(time.time() - t))
 print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
@@ -99,6 +101,7 @@ print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 # 测试
 model = torch.load("./best.plk")
 output = model(features, adj_topo)
-acc_test = accuracy(output[idx_test], labels[idx_test])
+acc_test, f1_test = metrics(output[idx_test], labels[idx_test], labels.max().item() + 1)
 print("Test set results:",
-      "accuracy= {:.4f}".format(acc_test.item()))
+      "accuracy= {:.4f}".format(acc_test.item()),
+      "f1= {:.4f}".format(f1_test.item()))

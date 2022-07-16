@@ -30,10 +30,10 @@ parser.add_argument('--dropout', type=float, default=0.5,
 parser.add_argument('--k', type=float, default=7,
                     help='k nearest neighbors.')
 parser.add_argument("-d", "--dataset", help="dataset", type=str, default='citeseer')
-parser.add_argument("-l", "--label_per_class", help="labeled data for train per class", type=int, default=20)
-parser.add_argument('--gamma', type=float, default=0.001,
+parser.add_argument("-l", "--label_per_class", help="labeled data for train per class", type=int, default=60)
+parser.add_argument('--gamma', type=float, default=0,
                     help='The coefficient of consistency constraint.')
-parser.add_argument('--beta', type=float, default=5e-8,
+parser.add_argument('--beta', type=float, default=0,
                     help='The coefficient of and disparity constraints.')
 
 
@@ -71,6 +71,9 @@ if args.cuda:
 # 记录最优有效集准确率
 max_accuracy = 0
 
+attn_log = []
+prefix = "{}_{}_{}_{}_{}".format(args.dataset, args.label_per_class, args.k, args.gamma, args.beta)
+
 # 训练
 t_total = time.time()
 for epoch in range(args.epochs):
@@ -79,12 +82,16 @@ for epoch in range(args.epochs):
     optimizer.zero_grad()
 
     output, att, z_t, z_f, z_ct, z_cf, z = model(features, adj_topo, adj_feat)
+    attn_log.append(att.cpu().detach().numpy())
     acc_train, f1_train = metrics(output[idx_train], labels[idx_train], labels.max().item() + 1)
     # 计算损失函数各部分
     loss_t = F.nll_loss(output[idx_train], labels[idx_train])
     loss_c = consistency_loss(z_ct, z_cf)
     loss_d = disparity_loss(z_t, z_f, z_ct, z_cf)
     # 合成损失函数
+    print("loss_t = ", loss_t)
+    print("loss_c = ", loss_c)
+    print("loss_d = ", loss_d)
     loss_train = loss_t + args.gamma * loss_c + args.beta * loss_d
     loss_train.backward()
     optimizer.step()
@@ -94,7 +101,7 @@ for epoch in range(args.epochs):
 
     acc_val, f1_val = metrics(output[idx_test], labels[idx_test], labels.max().item() + 1)
     if max_accuracy < acc_val:
-        torch.save(model, "./best.plk")
+        torch.save(model, "./{}_best.plk".format(prefix))
         max_accuracy = acc_val
 
     print('Epoch: {:04d}'.format(epoch + 1),
@@ -107,9 +114,10 @@ for epoch in range(args.epochs):
 print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
+np.save("./{}_attn.npy".format(prefix), np.array(attn_log))
 
 # 测试
-model = torch.load("./best.plk")
+model = torch.load("./{}_best.plk".format(prefix))
 output, att, z_t, z_f, z_ct, z_cf, z = model(features, adj_topo, adj_feat)
 acc_test, f1_test = metrics(output[idx_test], labels[idx_test], labels.max().item() + 1)
 print("Test set results:",
